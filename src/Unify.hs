@@ -3,55 +3,71 @@ module Unify where
 import Common
 import Data.List (lookup)
 
+type Var = String
+
+type Symbol = String
+
 data Term
-  = TInt Int
-  | TNil
-  | TCons Term Term
-  | TVar Var
-  deriving (Eq)
+  = TVar Var
+  | TAtom String
+  | TFunc Symbol [Term]
+  deriving (Show, Eq)
 
-data Var
-  = VNamed String
-  | VGenerated Int
-  deriving (Eq)
+data Rule = Rule Term [Term]
 
-var :: String -> Term
-var = TVar . VNamed
+type Query = [Term]
 
-list :: [Int] -> Term
-list xs = foldr TCons TNil (map TInt xs)
+data Subst = Subst [(Var, Term)]
+  deriving (Show)
 
-newtype Subst = MkSubst {unSubst :: [(Var, Term)]}
+instance Semigroup Subst where
+  Subst s1 <> Subst s2 = Subst $ s1 ++ s2
 
-idSubst :: Subst
-idSubst = MkSubst []
+instance Monoid Subst where
+  mempty = Subst []
 
-extend :: Var -> Term -> Subst -> Subst
-extend x t (MkSubst s) = MkSubst $ (x, t) : s
+unify :: Term -> Term -> Maybe Subst
+unify (TVar v) t = Just $ Subst [(v, t)]
+unify t (TVar v) = Just $ Subst [(v, t)]
+unify (TAtom a1) (TAtom a2)
+  | a1 == a2 = Just mempty
+  | otherwise = Nothing
+unify (TFunc f1 ts1) (TFunc f2 ts2)
+  | f1 == f2 && length ts1 == length ts2 = unifyArgs ts1 ts2
+  | otherwise = Nothing
+unify _ _ = Nothing
+
+unifyArgs :: [Term] -> [Term] -> Maybe Subst
+unifyArgs [] [] = Just mempty
+unifyArgs (t1 : ts1) (t2 : ts2) = do
+  s1 <- unify t1 t2
+  s2 <- unifyArgs (map (apply s1) ts1) (map (apply s1) ts2)
+  Just $ s1 <> s2
+unifyArgs _ _ = Nothing
 
 apply :: Subst -> Term -> Term
-apply s t = case deref s t of
-  TCons x xs -> TCons (apply s x) (apply s xs)
-  t' -> t'
+apply (Subst s) tx@(TVar x)
+  | Just t <- lookup x s = t
+  | otherwise = tx
+apply s (TFunc f ts) = TFunc f (map (apply s) ts)
+apply _ t = t
 
-deref :: Subst -> Term -> Term
-deref s tv@(TVar v) = case lookup v (unSubst s) of
-  Just t -> deref s t
-  _ -> tv
-deref _ t = t
+-- resolve substs by backtracking
+resolve :: [Rule] -> Query -> [Subst]
+resolve _ [] = [mempty]
+resolve rs (goal : rest) = do
+  Rule h b <- rs
+  s <- maybeToList (unify goal h)
+  let newGoals = map (apply s) (b <> rest)
+  s' <- resolve rs newGoals
+  return $ s <> s'
 
-unify :: (Term, Term) -> Subst -> Maybe Subst
-unify (t, u) s = case (deref s t, deref s u) of
-  (TNil, TNil) -> Just s
-  (TCons x xs, TCons y ys) -> unify (xs, ys) =<< unify (x, y) s
-  (TInt n, TInt m) | n == m -> Just s
-  (TVar x, TVar y) | x == y -> Just s
-  (TVar x, t) -> if occurs x t s then Nothing else Just (extend x t s)
-  (t, TVar x) -> if occurs x t s then Nothing else Just (extend x t s)
-  _ -> Nothing
+(^-) :: Term -> [Term] -> Rule
+h ^- b = Rule h b
 
-occurs :: Var -> Term -> Subst -> Bool
-occurs x t s = case deref s t of
-  TVar y -> x == y
-  TCons y ys -> occurs x y s || occurs x ys s
-  _ -> False
+rules =
+  [ TFunc "parent" [TVar "X", TVar "Y"] ^- [TFunc "mother" [TVar "X", TVar "Y"]],
+    TFunc "mother" [TAtom "alice", TAtom "bob"] ^- []
+  ]
+
+query = [TFunc "parent" [TAtom "alice", TVar "Y"]]
