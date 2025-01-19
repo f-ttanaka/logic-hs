@@ -16,6 +16,6 @@ ruleP =
     <$> termP
     <*> option [] (reservedOp ":-" >> commaSep1 termP)
 
-parseRule :: String -> Maybe Rule
-
-parseRule
+doParse :: (MonadThrow m) => Parser a -> String -> m a
+doParse p source = case parse p "" (pack source) of
+  Right x -> return x

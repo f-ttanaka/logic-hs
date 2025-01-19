@@ -1,9 +1,11 @@
 module ToyProlog.Common
   ( module Relude,
+    module Control.Exception.Safe,
     lzw,
   )
 where
 
+import Control.Exception.Safe
 import Relude
 
 lzw :: (a -> a -> a) -> [a] -> [a] -> [a]
