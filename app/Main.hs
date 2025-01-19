@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Common (IO, return)
+import ToyProlog.Common (IO, return)
 
 main :: IO ()
 main = return ()
