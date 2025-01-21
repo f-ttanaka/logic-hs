@@ -13,4 +13,4 @@ data Term
 
 data Rule = Rule Term [Term]
 
-type Query = Term
+type Query = [Term]

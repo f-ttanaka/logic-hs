@@ -16,8 +16,9 @@ newtype Solve m a = Solve (StateT [Rule] m a)
       MonadThrow
     )
 
-solve :: (MonadThrow m) => Query -> Solve m Subst
-solve q = undefined
+solve :: (MonadThrow m) => Query -> Solve m [Subst]
+solve [] = return [mempty]
+solve (g : gs) = do
 
 -- resolve substs by backtracking
 -- resolve :: [Rule] -> Query -> [Subst]

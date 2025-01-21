@@ -26,6 +26,7 @@ dependencies:
 - relude
 - repline
 - safe-exceptions
+- text
 
 ghc-options:
 - -Wall

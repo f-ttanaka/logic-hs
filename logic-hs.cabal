@@ -50,6 +50,7 @@ library
     , relude
     , repline
     , safe-exceptions
+    , text
   default-language: Haskell2010
 
 executable logic-hs-exe
@@ -72,6 +73,7 @@ executable logic-hs-exe
     , relude
     , repline
     , safe-exceptions
+    , text
   default-language: Haskell2010
 
 test-suite logic-hs-test
@@ -95,4 +97,5 @@ test-suite logic-hs-test
     , relude
     , repline
     , safe-exceptions
+    , text
   default-language: Haskell2010
